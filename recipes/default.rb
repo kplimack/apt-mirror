@@ -28,8 +28,20 @@ directory node['apt-mirror']['base_path'] do
   recursive true
 end
 
-repository_locations = data_bag('apt-mirror').map do |mirror|
-  data_bag_item('apt-mirror', mirror)["source"]
+case node['apt-mirror']['data_source']
+when 'attribute'
+  repository_locations = node['apt-mirror']['repository_locations'].each do |name,mirror|
+    mirror['source']
+  end
+when 'citadel'
+  res = JSON.parse(citadel['repos/apt-mirror.json'])
+  repository_locations = res.map do |name,repo|
+    repo['source']
+  end
+else # 'data_bag'
+  repository_locations = data_bag('apt-mirror').map do |mirror|
+    data_bag_item('apt-mirror', mirror)["source"]
+  end
 end
 
 template '/etc/apt/mirror.list' do
